@@ -1,0 +1,17 @@
+[package]
+name = "cg"
+version = "0.1.0"
+authors = ["Aleksey Kladov <aleksey.kladov@gmail.com>"]
+license = "MIT"
+
+
+
+[dependencies]
+nalgebra = "0.2.0"
+num = "*"
+time = "0.1"
+
+[dependencies.glium]
+version = "*"
+features = ["nalgebra", "cgmath", "glutin"]
+default-features = false
