@@ -1,26 +1,20 @@
 #version 330
 
-// Аттрибуты - данные, зачитываемые из вершинных буферов
-// "in" - на вход идёт аттрибут двухкомпонентный float (vec2)
+
+uniform float scale;
+uniform vec2 position;
+
+
 in vec2 in_pos;
 
-// структура, определяющая выходные аттрибуты
 out vs_output
 {
-   vec3 color;
+    vec2 pos;
 } v_out;
 
-// uniform'ы - данные, которые не меняются от вершины к вершине
-
-// матрица преобразование из системы координат объекта в систему координат камеры с учётом проекции
-uniform mat4 mvp;
-// время, прошедшее с первого кадра
-uniform float time;
 
 void main()
 {
-   // NB! Запись в gl_Position обязательна (gl_Position - встроенный в GLSL выходной аттрибут)
-   gl_Position = mvp * vec4(in_pos, 0, 1);
-
-   v_out.color = vec3(1, 1, 0);
+    gl_Position = vec4(in_pos, 0, 1);
+    v_out.pos = in_pos * scale + position;
 }
