@@ -24,4 +24,4 @@
 Для использования OpenGL из Rust была использованна библиотека glium.
 [Туториал](http://tomaka.github.io/glium/book/).
 
-Для виджитов была использована библиотека [imgui-rs](https://github.com/Gekkio/imgui-rs).
+Для виджетов была использована библиотека [imgui-rs](https://github.com/Gekkio/imgui-rs).
