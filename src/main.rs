@@ -1,6 +1,6 @@
 #[macro_use] extern crate glium;
 extern crate image;
-extern crate nalgebra as na;
+extern crate nalgebra;
 extern crate num;
 extern crate rustc_serialize;
 extern crate time;
@@ -13,7 +13,7 @@ use std::fs;
 use glium::{glutin, DisplayBuild, Surface};
 use glium::backend::glutin_backend::GlutinFacade;
 use image::GenericImage;
-use na::Vec2;
+use nalgebra::Vec2;
 use rustc_serialize::json;
 
 
