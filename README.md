@@ -3,7 +3,9 @@
 Для сборки нужен компилятор Rust, его можно скачать тут:
 [Rust](https://www.rust-lang.org/), или же, для Linux и Mac:
 
-`curl -sf -L https://static.rust-lang.org/rustup.sh | sh`
+`curl -sf -L https://static.rust-lang.org/rustup.sh | sh`.
+
+Для сборки под Windows вам также понадобится [MinGW-64](http://sourceforge.net/projects/mingw-w64/)
 
 ## Запуск
 
