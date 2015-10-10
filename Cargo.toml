@@ -11,17 +11,10 @@ nalgebra = "0.2.0"
 num = "*"
 conrod = "*"
 time = "0.1"
-find_folder = "0.2.0"
-gfx = "0.7.1"
-gfx_device_gl = "0.5.0"
-piston-viewport = "0.2.0"
-piston_window = "0.23.0"
-piston2d-gfx_graphics = "0.10.0"
-piston2d-opengl_graphics = "0.14.0"
-pistoncore-glutin_window = "0.15.0"
-piston = "0.13.0"
+image = "*"
+rustc-serialize = "0.3"
 
 [dependencies.glium]
 version = "*"
-features = ["nalgebra", "cgmath", "glutin"]
+features = ["nalgebra", "cgmath", "glutin", "image"]
 default-features = false
