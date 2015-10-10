@@ -1,20 +1,19 @@
 #[macro_use] extern crate glium;
+#[macro_use] extern crate imgui;
 extern crate image;
 extern crate nalgebra;
 extern crate num;
-extern crate rustc_serialize;
-extern crate time;
 
 use std::io::Cursor;
 use std::thread;
-use std::io::Read;
-use std::fs;
 
 use glium::{glutin, DisplayBuild, Surface};
 use glium::backend::glutin_backend::GlutinFacade;
+use glium::glutin::{ElementState, Event, MouseButton, VirtualKeyCode};
+use imgui::ImGui;
+use imgui::glium_renderer::Renderer;
 use image::GenericImage;
 use nalgebra::Vec2;
-use rustc_serialize::json;
 
 
 #[derive(Copy, Clone)]
@@ -30,34 +29,22 @@ impl Vertex {
     }
 }
 
-#[derive(RustcDecodable)]
 struct Tunables {
     escape_threshold: f32,
-    max_iteration: u32,
-    ms_per_frame: u32,
+    max_iteration: i32,
+    ms_per_frame: i32,
     speed: f32,
 }
 
-struct App<'a> {
+struct App {
     tunables: Tunables,
     scale: f32,
     position: Vec2<f32>,
-    display: &'a GlutinFacade,
     program: glium::Program,
 }
 
-type SimpleResult<T=()> = Result<T, Box<std::error::Error>>;
-
-fn read_file(path: &str) -> SimpleResult<String> {
-    let mut file = try!(fs::File::open(path));
-    let mut data = String::new();
-    try!(file.read_to_string(&mut data));
-    Ok(data)
-}
-
-impl<'a> App<'a> {
+impl App {
     fn new(display: &GlutinFacade) -> App {
-        let (vertex_shader_src, fragment_shader_src) = App::load_shaders().unwrap();
         App {
             tunables: Tunables {
                 escape_threshold: 4.0,
@@ -67,28 +54,12 @@ impl<'a> App<'a> {
             },
             scale: 1.0,
             position: Vec2::new(0.0, 0.0),
-            display: display,
             program: glium::Program::from_source(
-                display, &vertex_shader_src, &fragment_shader_src, None).unwrap(),
+                display,
+                &include_str!("./shaders/vertex.glsl"),
+                &include_str!("./shaders/fragment.glsl"),
+                None).unwrap(),
         }
-    }
-
-    fn load_shaders() -> SimpleResult<(String, String)> {
-        let vertex = try!(read_file("./shaders/vertex.glsl"));
-        let fragment = try!(read_file("./shaders/fragment.glsl"));
-        Ok((vertex, fragment))
-    }
-
-    fn reload(&mut self) -> SimpleResult {
-        let data = try!(read_file("./config.json"));
-        let data = try!(json::decode(&data));
-        self.tunables = data;
-
-        let (vertex, fragment) = try!(App::load_shaders());
-        let program = try!(glium::Program::from_source(
-            self.display, &vertex, &fragment, None));
-        self.program = program;
-        Ok(())
     }
 
     fn handle_key(&mut self, code: glutin::VirtualKeyCode) {
@@ -100,13 +71,6 @@ impl<'a> App<'a> {
             glutin::VirtualKeyCode::S => self.position.y -= speed * self.scale,
             glutin::VirtualKeyCode::A => self.position.x -= speed * self.scale,
             glutin::VirtualKeyCode::D => self.position.x += speed * self.scale,
-            glutin::VirtualKeyCode::R => match self.reload() {
-                Ok(_) => println!("Reloaded config"),
-                Err(e) => {
-                    println!("Failed to reaload config");
-                    println!("{}", e.description());
-                }
-            },
             _ => ()
         }
     }
@@ -118,6 +82,11 @@ fn mandelbrot() {
         .with_dimensions(800, 800)
         .with_depth_buffer(24)
         .build_glium().unwrap();
+
+    let mut imgui = ImGui::init();
+    imgui.set_ini_filename(None);
+    let mut renderer = Renderer::init(&mut imgui, &display).unwrap();
+
     let mut app = App::new(&display);
 
     let shape = vec![Vertex::new(-1.0, -1.0),
@@ -139,14 +108,18 @@ fn mandelbrot() {
     loop {
         for ev in display.poll_events() {
             match ev {
-                glutin::Event::Closed => return,
-                glutin::Event::KeyboardInput(state, _code, key_code) => {
-                    if state == glutin::ElementState::Pressed {
+                Event::Closed => return,
+                Event::KeyboardInput(state, _code, key_code) => {
+                    if state == ElementState::Pressed {
                         if let Some(code) = key_code {
                             app.handle_key(code)
                         }
                     }
                 }
+                Event::MouseMoved(pos) => imgui.set_mouse_pos(pos.0 as f32, pos.1 as f32),
+                Event::MouseInput(state, MouseButton::Left) =>
+                    imgui.set_mouse_down(&[state == ElementState::Pressed,
+                                           false, false, false, false]),
                 _ => ()
             }
         }
@@ -156,15 +129,32 @@ fn mandelbrot() {
 
         let uniforms = uniform! {
             escape_threshold: app.tunables.escape_threshold,
-            max_iteration: app.tunables.max_iteration,
+            max_iteration: app.tunables.max_iteration as u32,
             position: app.position,
             scale: app.scale,
             tex: &texture,
         };
         target.draw(&vertex_buffer, &indices, &app.program, &uniforms,
                     &Default::default()).unwrap();
+
+        let (width, height) = target.get_dimensions();
+        let ui = imgui.frame(width, height, 0.0017);
+        ui.window()
+            .name(im_str!("Hello world"))
+            .movable(true)
+            .size((500.0, 160.0), imgui::ImGuiSetCond_FirstUseEver)
+            .build(|| {
+                ui.text(im_str!("w, s, a, d - movement\nj, k - scale."));
+                ui.slider_i32(im_str!("Number of iterations"),
+                              &mut app.tunables.max_iteration, 0, 1000).build();
+                ui.slider_f32(im_str!("Escape threshold"),
+                              &mut app.tunables.escape_threshold, 0.0, 10.0).build();
+                ui.slider_i32(im_str!("ms per frame"),
+                              &mut app.tunables.ms_per_frame, 1, 100).build();
+            });
+        renderer.render(&mut target, ui).unwrap();
         target.finish().unwrap();
-        thread::sleep_ms(app.tunables.ms_per_frame);
+        thread::sleep_ms(app.tunables.ms_per_frame as u32);
     }
 }
 
