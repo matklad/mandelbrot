@@ -81,6 +81,7 @@ fn mandelbrot() {
     let display = glutin::WindowBuilder::new()
         .with_dimensions(800, 800)
         .with_depth_buffer(24)
+        .with_gl_profile(glutin::GlProfile::Core)
         .build_glium().unwrap();
 
     let mut imgui = ImGui::init();

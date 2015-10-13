@@ -9,6 +9,8 @@ in vs_output
    vec2 pos;
 } f_in;
 
+out vec4 o_color;
+
 void main()
 {
     float x0 = f_in.pos.x * 3.5 / 2.0 - 0.75;
@@ -28,5 +30,5 @@ void main()
         ? 0.0
         : float(iteration) / max_iteration;
 
-    gl_FragColor = texture1D(tex, c);
+    o_color = texture(tex, c);
 }
