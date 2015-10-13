@@ -8,11 +8,10 @@ license = "MIT"
 
 [dependencies]
 nalgebra = "0.2.0"
-num = "*"
 image = "*"
 imgui = "0.0.3"
 
 [dependencies.glium]
-version = "*"
-features = ["nalgebra", "cgmath", "glutin", "image"]
+version = "0.9.3"
+features = ["nalgebra", "glutin", "image"]
 default-features = false

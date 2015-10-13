@@ -2,13 +2,11 @@
 #[macro_use] extern crate imgui;
 extern crate image;
 extern crate nalgebra;
-extern crate num;
 
 use std::io::Cursor;
 use std::thread;
 
 use glium::{glutin, DisplayBuild, Surface};
-use glium::backend::glutin_backend::GlutinFacade;
 use glium::glutin::{ElementState, Event, MouseButton, VirtualKeyCode};
 use imgui::ImGui;
 use imgui::glium_renderer::Renderer;
@@ -40,11 +38,12 @@ struct App {
     tunables: Tunables,
     scale: f32,
     position: Vec2<f32>,
-    program: glium::Program,
+    mouse_position: Vec2<f32>,
+    mouse_down: bool,
 }
 
 impl App {
-    fn new(display: &GlutinFacade) -> App {
+    fn new() -> App {
         App {
             tunables: Tunables {
                 escape_threshold: 4.0,
@@ -54,11 +53,8 @@ impl App {
             },
             scale: 1.0,
             position: Vec2::new(0.0, 0.0),
-            program: glium::Program::from_source(
-                display,
-                &include_str!("./shaders/vertex.glsl"),
-                &include_str!("./shaders/fragment.glsl"),
-                None).unwrap(),
+            mouse_position: Vec2::new(0.0, 0.0),
+            mouse_down: false,
         }
     }
 
@@ -74,6 +70,27 @@ impl App {
             _ => ()
         }
     }
+
+    fn handle_mouse_move(&mut self, x: f32, y: f32) {
+        let new_position = Vec2::new(x, y);
+        if self.mouse_down {
+            let diff = new_position - self.mouse_position;
+            self.position = self.position - diff * self.scale;
+        }
+
+        self.mouse_position = new_position;
+    }
+
+    fn handle_mouse_click(&mut self, clicked: bool) {
+        self.mouse_down = clicked
+    }
+
+    fn handle_scroll(&mut self, amount: f32) {
+        let point_at = self.position + self.mouse_position * self.scale;
+        let x = 0.999f32;
+        self.scale *= x.powf(amount);
+        self.position = point_at - self.mouse_position * self.scale;
+    }
 }
 
 
@@ -87,8 +104,6 @@ fn mandelbrot() {
     let mut imgui = ImGui::init();
     imgui.set_ini_filename(None);
     let mut renderer = Renderer::init(&mut imgui, &display).unwrap();
-
-    let mut app = App::new(&display);
 
     let shape = vec![Vertex::new(-1.0, -1.0),
                      Vertex::new(-1.0,  1.0),
@@ -106,28 +121,46 @@ fn mandelbrot() {
     let pixels: Vec<_> = image.pixels().map(|(_, _, p)| p).collect();
     let texture = glium::texture::Texture1d::new(&display, pixels).unwrap();
 
+    let program = glium::Program::from_source(&display,
+                                              &include_str!("./shaders/vertex.glsl"),
+                                              &include_str!("./shaders/fragment.glsl"),
+                                              None).unwrap();
+
+
+    let mut app = App::new();
     loop {
+        let mut target = display.draw();
+        let (width, height) = target.get_dimensions();
+
         for ev in display.poll_events() {
             match ev {
                 Event::Closed => return,
-                Event::KeyboardInput(state, _code, key_code) => {
-                    if state == ElementState::Pressed {
-                        if let Some(code) = key_code {
-                            app.handle_key(code)
+                Event::KeyboardInput(ElementState::Pressed, _code, Some(key_code)) => {
+                    app.handle_key(key_code);
+                }
+                Event::MouseMoved(pos) => {
+                    imgui.set_mouse_pos(pos.0 as f32, pos.1 as f32);
+                    app.handle_mouse_move(2.0 * (pos.0 as f32 / width as f32) - 1.0,
+                                          -(2.0 * (pos.1 as f32 / height as f32) - 1.0));
+                }
+                Event::MouseWheel(delta) => {
+                    match delta {
+                        glutin::MouseScrollDelta::LineDelta(_, y) |
+                        glutin::MouseScrollDelta::PixelDelta(_, y) => {
+                            app.handle_scroll(y);
                         }
                     }
                 }
-                Event::MouseMoved(pos) => imgui.set_mouse_pos(pos.0 as f32, pos.1 as f32),
-                Event::MouseInput(state, MouseButton::Left) =>
+                Event::MouseInput(state, MouseButton::Left) => {
                     imgui.set_mouse_down(&[state == ElementState::Pressed,
-                                           false, false, false, false]),
+                                           false, false, false, false]);
+                    app.handle_mouse_click(state == ElementState::Pressed);
+                }
                 _ => ()
             }
         }
 
-        let mut target = display.draw();
         target.clear_color(0.0, 0.0, 1.0, 1.0);
-
         let uniforms = uniform! {
             escape_threshold: app.tunables.escape_threshold,
             max_iteration: app.tunables.max_iteration as u32,
@@ -135,17 +168,15 @@ fn mandelbrot() {
             scale: app.scale,
             tex: &texture,
         };
-        target.draw(&vertex_buffer, &indices, &app.program, &uniforms,
+        target.draw(&vertex_buffer, &indices, &program, &uniforms,
                     &Default::default()).unwrap();
-
-        let (width, height) = target.get_dimensions();
-        let ui = imgui.frame(width, height, 0.0017);
+        let ui = imgui.frame(width, height, app.tunables.ms_per_frame as f32 / 1000.0);
         ui.window()
             .name(im_str!("Hello world"))
             .movable(true)
             .size((500.0, 160.0), imgui::ImGuiSetCond_FirstUseEver)
             .build(|| {
-                ui.text(im_str!("w, s, a, d - movement\nj, k - scale."));
+                ui.text(im_str!("w, s, a, d, drag - movement\nj, k, wheel - scale."));
                 ui.slider_i32(im_str!("Number of iterations"),
                               &mut app.tunables.max_iteration, 0, 1000).build();
                 ui.slider_f32(im_str!("Escape threshold"),

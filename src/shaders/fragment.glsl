@@ -1,4 +1,4 @@
-#version 330
+#version 330 core
 
 uniform uint max_iteration;
 uniform float escape_threshold;
