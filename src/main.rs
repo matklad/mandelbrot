@@ -33,6 +33,7 @@ struct Tunables {
     max_iteration: i32,
     speed: f32,
     scroll_speed: f32,
+    use_double: bool,
 }
 
 struct App {
@@ -52,7 +53,8 @@ impl App {
                 escape_threshold: 4.0,
                 max_iteration: 100,
                 speed: 0.1,
-                scroll_speed: 4.0
+                scroll_speed: 4.0,
+                use_double: false,
             },
             scale: 1.0,
             position: Vec2::new(0.0, 0.0),
@@ -139,10 +141,15 @@ fn mandelbrot() {
     let pixels: Vec<_> = image.pixels().map(|(_, _, p)| p).collect();
     let texture = glium::texture::Texture1d::new(&display, pixels).unwrap();
 
-    let program = glium::Program::from_source(&display,
-                                              &include_str!("./shaders/vertex.glsl"),
-                                              &include_str!("./shaders/fragment.glsl"),
-                                              None).unwrap();
+    let fprogram = glium::Program::from_source(&display,
+                                               &include_str!("./shaders/vertex.glsl"),
+                                               &include_str!("./shaders/fragment.glsl"),
+                                               None).unwrap();
+
+    let dprogram = glium::Program::from_source(&display,
+                                               &include_str!("./shaders/dvertex.glsl"),
+                                               &include_str!("./shaders/dfragment.glsl"),
+                                               None).ok();
 
 
     let mut app = App::new();
@@ -185,6 +192,19 @@ fn mandelbrot() {
             scale: app.scale,
             tex: &texture,
         };
+
+        let program = if app.tunables.use_double {
+            if let Some(ref p) = dprogram {
+                p
+            } else {
+                println!("Doubles are not supported");
+                app.tunables.use_double = false;
+                &fprogram
+            }
+        } else {
+            &fprogram
+        };
+
         target.draw(&vertex_buffer, &indices, &program, &uniforms,
                     &Default::default()).unwrap();
         let fps = format!("FPS: {}", imgui.get_frame_rate());
@@ -200,7 +220,7 @@ fn mandelbrot() {
         ui.window()
             .name(im_str!("I'm a little fractal"))
             .movable(true)
-            .size((500.0, 160.0), imgui::ImGuiSetCond_FirstUseEver)
+            .size((500.0, 200.0), imgui::ImGuiSetCond_FirstUseEver)
             .build(|| {
                 ui.text(im_str!("w, s, a, d, drag - movement\nj, k, wheel - scale."));
                 ui.text(fps.into());
@@ -212,6 +232,8 @@ fn mandelbrot() {
                               &mut app.tunables.escape_threshold, 0.0, 10.0).build();
                 ui.slider_f32(im_str!("Scroll slowness"),
                               &mut app.tunables.scroll_speed, 0.05, 10.0).build();
+                ui.checkbox(im_str!("Use doubles"),
+                            &mut app.tunables.use_double);
             });
         renderer.render(&mut target, ui).unwrap();
         target.finish().unwrap();
