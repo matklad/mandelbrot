@@ -147,7 +147,7 @@ fn mandelbrot() {
     loop {
         let mut target = display.draw();
         let (width, height) = target.get_dimensions();
-
+        let mut mouse_pos = None;
         for ev in display.poll_events() {
             match ev {
                 Event::Closed => return,
@@ -156,14 +156,13 @@ fn mandelbrot() {
                 }
                 Event::MouseMoved(pos) => {
                     imgui.set_mouse_pos(pos.0 as f32, pos.1 as f32);
-                    app.handle_mouse_move(2.0 * (pos.0 as f32 / width as f32) - 1.0,
-                                          -(2.0 * (pos.1 as f32 / height as f32) - 1.0));
+                    mouse_pos = Some(pos)
                 }
                 Event::MouseWheel(delta) => {
                     match delta {
                         glutin::MouseScrollDelta::LineDelta(_, y) |
                         glutin::MouseScrollDelta::PixelDelta(_, y) => {
-                            app.handle_scroll(y);
+                            app.handle_scroll(y)
                         }
                     }
                 }
@@ -190,14 +189,21 @@ fn mandelbrot() {
         let ifps = format!("ms per frame: {}", 1000.0 / imgui.get_frame_rate());
 
         let ui = imgui.frame(width, height, app.frame_delta_seconds().unwrap_or(1.0 / 60.0));
+        if !ui.want_capture_mouse() {
+            if let Some(pos) = mouse_pos {
+                app.handle_mouse_move(2.0 * (pos.0 as f32 / width as f32) - 1.0,
+                                      -(2.0 * (pos.1 as f32 / height as f32) - 1.0));
+            }
+        }
         ui.window()
-            .name(im_str!("Hello world"))
+            .name(im_str!("I'm a little fractal"))
             .movable(true)
             .size((500.0, 160.0), imgui::ImGuiSetCond_FirstUseEver)
             .build(|| {
                 ui.text(im_str!("w, s, a, d, drag - movement\nj, k, wheel - scale."));
                 ui.text(fps.into());
                 ui.text(ifps.into());
+                ui.separator();
                 ui.slider_i32(im_str!("Number of iterations"),
                               &mut app.tunables.max_iteration, 0, 1000).build();
                 ui.slider_f32(im_str!("Escape threshold"),
