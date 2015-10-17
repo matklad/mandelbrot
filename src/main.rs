@@ -32,6 +32,7 @@ struct Tunables {
     escape_threshold: f32,
     max_iteration: i32,
     speed: f32,
+    scroll_speed: f32,
 }
 
 struct App {
@@ -51,6 +52,7 @@ impl App {
                 escape_threshold: 4.0,
                 max_iteration: 100,
                 speed: 0.1,
+                scroll_speed: 4.0
             },
             scale: 1.0,
             position: Vec2::new(0.0, 0.0),
@@ -103,7 +105,7 @@ impl App {
 
     fn handle_scroll(&mut self, amount: f32) {
         let point_at = self.position + self.mouse_position * self.scale;
-        let x = 0.999f32;
+        let x = 1.0 - 0.1f32.powf(self.tunables.scroll_speed);
         self.scale *= x.powf(amount);
         self.position = point_at - self.mouse_position * self.scale;
     }
@@ -208,6 +210,8 @@ fn mandelbrot() {
                               &mut app.tunables.max_iteration, 0, 1000).build();
                 ui.slider_f32(im_str!("Escape threshold"),
                               &mut app.tunables.escape_threshold, 0.0, 10.0).build();
+                ui.slider_f32(im_str!("Scroll slowness"),
+                              &mut app.tunables.scroll_speed, 0.05, 10.0).build();
             });
         renderer.render(&mut target, ui).unwrap();
         target.finish().unwrap();
