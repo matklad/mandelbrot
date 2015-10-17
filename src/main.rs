@@ -2,16 +2,17 @@
 #[macro_use] extern crate imgui;
 extern crate image;
 extern crate nalgebra;
+extern crate time;
 
 use std::io::Cursor;
-use std::thread;
 
-use glium::{glutin, DisplayBuild, Surface};
 use glium::glutin::{ElementState, Event, MouseButton, VirtualKeyCode};
+use glium::{glutin, DisplayBuild, Surface};
+use image::GenericImage;
 use imgui::ImGui;
 use imgui::glium_renderer::Renderer;
-use image::GenericImage;
 use nalgebra::Vec2;
+use time::{SteadyTime, Duration};
 
 
 #[derive(Copy, Clone)]
@@ -30,7 +31,6 @@ impl Vertex {
 struct Tunables {
     escape_threshold: f32,
     max_iteration: i32,
-    ms_per_frame: i32,
     speed: f32,
 }
 
@@ -40,6 +40,8 @@ struct App {
     position: Vec2<f32>,
     mouse_position: Vec2<f32>,
     mouse_down: bool,
+    last_frame: Option<SteadyTime>,
+    delta: Option<Duration>,
 }
 
 impl App {
@@ -48,14 +50,28 @@ impl App {
             tunables: Tunables {
                 escape_threshold: 4.0,
                 max_iteration: 100,
-                ms_per_frame: 17,
                 speed: 0.1,
             },
             scale: 1.0,
             position: Vec2::new(0.0, 0.0),
             mouse_position: Vec2::new(0.0, 0.0),
             mouse_down: false,
+            last_frame: None,
+            delta: None,
         }
+    }
+
+    fn frame(&mut self) {
+        let now = SteadyTime::now();
+        if let Some(t) = self.last_frame {
+            self.delta = Some(now - t);
+        }
+
+        self.last_frame = Some(now)
+    }
+
+    fn frame_delta_seconds(&self) -> Option<f32> {
+        self.delta.map(|d| d.num_nanoseconds().unwrap() as f32 / 1_000_000_000.0)
     }
 
     fn handle_key(&mut self, code: glutin::VirtualKeyCode) {
@@ -159,7 +175,7 @@ fn mandelbrot() {
                 _ => ()
             }
         }
-
+        app.frame();
         target.clear_color(0.0, 0.0, 1.0, 1.0);
         let uniforms = uniform! {
             escape_threshold: app.tunables.escape_threshold,
@@ -170,23 +186,25 @@ fn mandelbrot() {
         };
         target.draw(&vertex_buffer, &indices, &program, &uniforms,
                     &Default::default()).unwrap();
-        let ui = imgui.frame(width, height, app.tunables.ms_per_frame as f32 / 1000.0);
+        let fps = format!("FPS: {}", imgui.get_frame_rate());
+        let ifps = format!("ms per frame: {}", 1000.0 / imgui.get_frame_rate());
+
+        let ui = imgui.frame(width, height, app.frame_delta_seconds().unwrap_or(1.0 / 60.0));
         ui.window()
             .name(im_str!("Hello world"))
             .movable(true)
             .size((500.0, 160.0), imgui::ImGuiSetCond_FirstUseEver)
             .build(|| {
                 ui.text(im_str!("w, s, a, d, drag - movement\nj, k, wheel - scale."));
+                ui.text(fps.into());
+                ui.text(ifps.into());
                 ui.slider_i32(im_str!("Number of iterations"),
                               &mut app.tunables.max_iteration, 0, 1000).build();
                 ui.slider_f32(im_str!("Escape threshold"),
                               &mut app.tunables.escape_threshold, 0.0, 10.0).build();
-                ui.slider_i32(im_str!("ms per frame"),
-                              &mut app.tunables.ms_per_frame, 1, 100).build();
             });
         renderer.render(&mut target, ui).unwrap();
         target.finish().unwrap();
-        thread::sleep_ms(app.tunables.ms_per_frame as u32);
     }
 }
 

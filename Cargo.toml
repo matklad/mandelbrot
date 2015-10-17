@@ -9,7 +9,8 @@ license = "MIT"
 [dependencies]
 nalgebra = "0.2.0"
 image = "*"
-imgui = "0.0.3"
+imgui = { git = "https://github.com/matklad/imgui-rs" }
+time  = "*"
 
 [dependencies.glium]
 version = "0.9.3"

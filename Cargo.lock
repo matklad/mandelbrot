@@ -4,8 +4,9 @@ version = "0.1.0"
 dependencies = [
  "glium 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
  "image 0.3.14 (registry+https://github.com/rust-lang/crates.io-index)",
- "imgui 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "imgui 0.0.4-pre (git+https://github.com/matklad/imgui-rs)",
  "nalgebra 0.2.23 (registry+https://github.com/rust-lang/crates.io-index)",
+ "time 0.1.32 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
@@ -284,19 +285,19 @@ dependencies = [
 
 [[package]]
 name = "imgui"
-version = "0.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.0.4-pre"
+source = "git+https://github.com/matklad/imgui-rs#25c26a8edcd7981837633769df7aff867d9cfafe"
 dependencies = [
  "gcc 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)",
  "glium 0.9.3 (registry+https://github.com/rust-lang/crates.io-index)",
- "imgui-sys 0.0.3 (registry+https://github.com/rust-lang/crates.io-index)",
+ "imgui-sys 0.0.4-pre (git+https://github.com/matklad/imgui-rs)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
 [[package]]
 name = "imgui-sys"
-version = "0.0.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
+version = "0.0.4-pre"
+source = "git+https://github.com/matklad/imgui-rs#25c26a8edcd7981837633769df7aff867d9cfafe"
 dependencies = [
  "bitflags 0.3.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "gcc 0.3.18 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -474,6 +475,16 @@ dependencies = [
  "kernel32-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
  "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "rand 0.3.11 (registry+https://github.com/rust-lang/crates.io-index)",
+ "winapi 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "time"
+version = "0.1.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "kernel32-sys 0.1.4 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libc 0.1.10 (registry+https://github.com/rust-lang/crates.io-index)",
  "winapi 0.2.4 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
 
