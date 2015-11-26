@@ -5,6 +5,7 @@ extern crate nalgebra;
 extern crate time;
 
 use std::io::Cursor;
+use std::borrow::Cow;
 
 use glium::glutin::{ElementState, Event, MouseButton, VirtualKeyCode};
 use glium::{glutin, DisplayBuild, Surface};
@@ -137,9 +138,14 @@ fn mandelbrot() {
     let indices = glium::index::NoIndices(glium::index::PrimitiveType::TrianglesList);
 
     let image = image::load(Cursor::new(&include_bytes!("./texture.png")[..]),
-                            image::PNG).unwrap();
-    let pixels: Vec<_> = image.pixels().map(|(_, _, p)| p).collect();
-    let texture = glium::texture::Texture1d::new(&display, pixels).unwrap();
+                            image::PNG).unwrap().to_rgba();
+    let image_dimensions = image.dimensions();
+    let image : glium::texture::RawImage1d<u8> = glium::texture::RawImage1d {
+        data: Cow::Owned(image.into_raw()),
+        width: image_dimensions.0,
+        format: glium::texture::ClientFormat::U8U8U8U8,
+    };
+    let texture = glium::texture::Texture1d::new(&display, image).unwrap();
 
     let fprogram = glium::Program::from_source(&display,
                                                &include_str!("./shaders/vertex.glsl"),
